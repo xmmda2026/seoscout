@@ -81,9 +81,10 @@ async def run_generate(
     prompt_path: str = None,
     overwrite: bool = False,
     test: bool = False,
+    output_dir: str | None = None,
 ):
     """Generate articles from collected material."""
-    Config.init(project)
+    Config.init(project, output_dir=output_dir)
 
     print("=" * 70)
     print(f"  Step 3: Generate [{project}]")

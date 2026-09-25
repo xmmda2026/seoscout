@@ -52,9 +52,9 @@ def deduplicate_items(items_by_keyword, item_type="video"):
     return unique_items, url_to_keywords
 
 
-async def run_collect(project: str):
+async def run_collect(project: str, output_dir: str | None = None):
     """Run the extract step programmatically."""
-    Config.init(project)
+    Config.init(project, output_dir=output_dir)
 
     print("=" * 70)
     print(f"  Step 2: Collect [{project}]")

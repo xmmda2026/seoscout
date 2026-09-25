@@ -105,13 +105,15 @@ class Config:
     _initialized = False
 
     @classmethod
-    def init(cls, project: str):
+    def init(cls, project: str, output_dir: str | None = None):
         """
         Initialize config for a project.
 
         Args:
             project: Project name (e.g. "my-site"). Data will be stored
-                     under OUTPUT_DIR/<project>/.
+                     under OUTPUT_DIR/<project> when output_dir is not set.
+            output_dir: Exact data directory for this run. Overrides the
+                        project-derived directory without changing .env.
         """
         # Load .env from current working directory
         load_dotenv()
@@ -123,7 +125,11 @@ class Config:
         cls.OUTPUT_DIR = os.getenv("OUTPUT_DIR", "./output")
 
         # Set up project paths
-        cls.DATA_DIR = os.path.join(cls.OUTPUT_DIR, project_dir)
+        cls.DATA_DIR = (
+            os.path.abspath(output_dir)
+            if output_dir
+            else os.path.join(cls.OUTPUT_DIR, project_dir)
+        )
         cls.OUT_DIR = os.path.join(cls.DATA_DIR, "out")
         cls.BASE_DIR = cls.OUT_DIR
         cls.CACHE_DIR = os.path.join(cls.OUT_DIR, "cache")

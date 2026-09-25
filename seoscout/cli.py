@@ -15,8 +15,16 @@ import argparse
 import json
 import os
 import sys
+from pathlib import Path
 
 from . import __version__
+
+
+def add_output_dir_argument(parser):
+    parser.add_argument(
+        "--output-dir",
+        help="Exact directory for this run's project data (overrides .env OUTPUT_DIR)",
+    )
 
 
 def _derive_project(keywords_file: str) -> str:
@@ -51,6 +59,7 @@ def main():
         "--keywords", "-k", required=True,
         help="Path to keywords JSON file"
     )
+    add_output_dir_argument(search_parser)
 
     # ── collect ──
     collect_parser = subparsers.add_parser(
@@ -65,6 +74,7 @@ def main():
         "--keywords", "-k",
         help="Keywords JSON file (used to derive project name if --project not set)"
     )
+    add_output_dir_argument(collect_parser)
 
     # ── generate ──
     gen_parser = subparsers.add_parser(
@@ -87,6 +97,7 @@ def main():
         "--test", action="store_true",
         help="Test mode: only generate 2 articles"
     )
+    add_output_dir_argument(gen_parser)
 
     # ── translate ──
     trans_parser = subparsers.add_parser(
@@ -113,6 +124,7 @@ def main():
         "--test", action="store_true",
         help="Test mode: only translate 1 article"
     )
+    add_output_dir_argument(trans_parser)
 
     # ── run (search + collect + generate) ──
     run_parser = subparsers.add_parser(
@@ -131,6 +143,7 @@ def main():
         "--overwrite", action="store_true",
         help="Overwrite existing articles"
     )
+    add_output_dir_argument(run_parser)
 
     args = parser.parse_args()
 
@@ -154,6 +167,7 @@ def main():
         args.project = _derive_project(args.keywords)
         print(f"📁 Project: {args.project}\n")
 
+    exit_code = 0
     if args.command == "search":
         asyncio.run(_run_search(args))
     elif args.command == "collect":
@@ -163,17 +177,19 @@ def main():
     elif args.command == "translate":
         asyncio.run(_run_translate(args))
     elif args.command == "run":
-        asyncio.run(_run_all(args))
+        exit_code = asyncio.run(_run_all(args))
+
+    sys.exit(exit_code)
 
 
 async def _run_search(args):
     from .search import run_search
-    await run_search(args.project, args.keywords)
+    await run_search(args.project, args.keywords, output_dir=args.output_dir)
 
 
 async def _run_collect(args):
     from .collect import run_collect
-    await run_collect(args.project)
+    await run_collect(args.project, output_dir=args.output_dir)
 
 
 async def _run_generate(args):
@@ -184,6 +200,7 @@ async def _run_generate(args):
         prompt_path=args.prompt,
         overwrite=args.overwrite,
         test=args.test,
+        output_dir=args.output_dir,
     )
 
 
@@ -206,6 +223,7 @@ async def _run_translate(args):
         prompt_path=args.prompt,
         overwrite=args.overwrite,
         test=args.test,
+        output_dir=args.output_dir,
     )
 
 
@@ -216,13 +234,14 @@ async def _run_all(args):
     from .translate import run_translate
     from .core.utils import load_languages_from_json
 
-    await run_search(args.project, args.keywords)
-    await run_collect(args.project)
+    await run_search(args.project, args.keywords, output_dir=args.output_dir)
+    await run_collect(args.project, output_dir=args.output_dir)
     await run_generate(
         args.project,
         args.keywords,
         prompt_path=args.prompt,
         overwrite=args.overwrite,
+        output_dir=args.output_dir,
     )
 
     # If languages are specified in JSON, auto-translate
@@ -237,7 +256,79 @@ async def _run_all(args):
             lang_str,
             prompt_path=None,
             overwrite=args.overwrite,
+            output_dir=args.output_dir,
         )
+
+    if verify_run_output(args.keywords, args.output_dir, args.project):
+        return 0
+    return 1
+
+
+def verify_run_output(keywords_file: str, output_dir: str | None, project: str) -> bool:
+    """Confirm exactly one MDX article exists for every keyword and language."""
+    from .core.utils import load_keywords_from_json, load_languages_from_json
+    from .generate import keyword_to_slug
+
+    entries = load_keywords_from_json(keywords_file)
+    data_dir = Path(output_dir).resolve() if output_dir else Path(
+        os.getenv("OUTPUT_DIR", "./output")
+    ) / project.replace('.', '_').replace('/', '_')
+    en_dir = data_dir / "articles" / "en"
+
+    expected_en = set()
+    for entry in entries:
+        relative = Path(keyword_to_slug(entry["keyword"]) + ".mdx")
+        if entry.get("category"):
+            relative = Path(entry["category"].lower().replace(" ", "-")) / relative
+        expected_en.add(relative)
+
+    if len(expected_en) != len(entries):
+        print("❌ One-page validation failed: keyword filename collision")
+        return False
+
+    actual_en = {
+        path.relative_to(en_dir)
+        for path in en_dir.glob("**/*.mdx")
+    } if en_dir.exists() else set()
+
+    valid = True
+    if actual_en != expected_en:
+        print(
+            "❌ One-page validation failed: "
+            f"expected {len(expected_en)} English MDX, found {len(actual_en)}"
+        )
+        missing = expected_en - actual_en
+        unexpected = actual_en - expected_en
+        if missing:
+            print(f"   Missing: {', '.join(map(str, sorted(missing)))}")
+        if unexpected:
+            print(f"   Unexpected: {', '.join(map(str, sorted(unexpected)))}")
+        valid = False
+
+    languages = load_languages_from_json(keywords_file)
+    if len(set(languages)) != len(languages):
+        print("❌ One-page validation failed: duplicate language codes")
+        valid = False
+
+    for language in languages:
+        language_dir = data_dir / "articles" / language
+        actual_language = {
+            path.relative_to(language_dir)
+            for path in language_dir.glob("**/*.mdx")
+        } if language_dir.exists() else set()
+        if actual_language != expected_en:
+            print(
+                "❌ Translation validation failed "
+                f"[{language}]: expected {len(expected_en)} MDX, found {len(actual_language)}"
+            )
+            valid = False
+
+    if valid:
+        print(
+            f"✅ One-page validation passed: {len(expected_en)} English MDX"
+            + (f", {len(languages)} language(s)" if languages else "")
+        )
+    return valid
 
 
 if __name__ == "__main__":

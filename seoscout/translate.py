@@ -92,6 +92,7 @@ async def run_translate(
     prompt_path: str = None,
     overwrite: bool = False,
     test: bool = False,
+    output_dir: str | None = None,
 ):
     """
     Translate English articles to target languages.
@@ -103,7 +104,7 @@ async def run_translate(
         overwrite: Overwrite existing translations
         test: Only translate 1 article
     """
-    Config.init(project)
+    Config.init(project, output_dir=output_dir)
 
     print("=" * 70)
     print(f"  Step 4: Translate [{project}]")

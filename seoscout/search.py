@@ -173,9 +173,9 @@ async def search_with_retry(
     return results
 
 
-async def run_search(project: str, keywords_file: str):
+async def run_search(project: str, keywords_file: str, output_dir: str | None = None):
     """Run the collect step programmatically."""
-    Config.init(project)
+    Config.init(project, output_dir=output_dir)
 
     print("=" * 70)
     print(f"  Step 1: Search [{project}]")
