@@ -1,38 +1,42 @@
 # seoscout
 
-> **From keywords to multilingual articles — in one command.**
+## 本次修改说明
 
-seoscout is a CLI tool for SEO professionals and content creators. Feed it a list of keywords, and it will:
+- **【修改位置 1】** README 的说明性文字、标题、提示、配置说明和 FAQ 已全面中文化；命令、路径、环境变量、JSON 字段与代码示例保持不变。
 
-- 🔍 **Search** YouTube (via yt-dlp) and Google (via Serper API) in parallel
-- 📥 **Collect** YouTube video transcripts and full web page text (via Jina Reader)
-- ✍️ **Generate** SEO-optimized MDX articles using LLM (with JS export metadata)
-- 🌍 **Translate** articles into multiple languages
+> **从关键词到多语言文章，一条命令完成。**
 
-No more manually opening every search result, copy-pasting, or paying for expensive content tools.
+**【修改位置 2】** seoscout 是面向 SEO 从业者与内容创作者的命令行工具。输入一组关键词后，它会：
 
-## Features
+- 🔍 **搜索** YouTube（通过 yt-dlp）和 Google（通过 Serper API）
+- 📥 **采集** YouTube 视频字幕与网页全文（通过 Jina Reader）
+- ✍️ **生成** 由 LLM 驱动、针对 SEO 优化的 MDX 文章（包含 JS export 元数据）
+- 🌍 **翻译** 文章为多种语言
 
-- **Full pipeline** — keywords → search → collect → generate → translate
-- **Parallel search** — YouTube + Google at the same time
-- **LLM-powered writing** — generate SEO articles from collected material
-- **Multi-language** — translate articles to any language (Spanish, Japanese, Arabic, and more)
-- **Smart filtering** — filter by duration, topic relevance, and block competitor/spam domains
-- **Caching** — each source is only extracted once; re-runs skip cached content
-- **Proxy support** — rotating proxy for YouTube transcript extraction when IP-blocked
-- **Configurable** — control concurrency, batch size, LLM model via `.env`
+无需再逐个打开搜索结果、复制粘贴内容，或购买昂贵的内容工具。
 
-## Quick Start
+## **【修改位置 3】** 功能特性
 
-### Prerequisites
+- **完整流水线** — 关键词 → 搜索 → 采集 → 生成 → 翻译
+- **并行搜索** — 同时搜索 YouTube 与 Google
+- **LLM 写作** — 基于采集材料生成 SEO 文章
+- **多语言** — 可翻译为任意语言（西班牙语、日语、阿拉伯语等）
+- **智能过滤** — 按视频时长、主题相关性过滤，并屏蔽竞品或垃圾域名
+- **缓存** — 每个来源只提取一次；再次运行会跳过已缓存内容
+- **代理支持** — YouTube 字幕提取遭遇 IP 封锁时可使用轮换代理
+- **可配置** — 通过 `.env` 控制并发数、批量大小和 LLM 模型
+
+## **【修改位置 4】** 快速开始
+
+### 前置条件
 
 - Python 3.10+
-- [yt-dlp](https://github.com/yt-dlp/yt-dlp) installed (`pip install yt-dlp`)
-- A [Serper API](https://serper.dev/) key (free tier available) — for search
-- A [Jina AI](https://jina.ai/) API key (optional, but recommended) — for web extraction
-- An LLM API key (e.g. [Gemini](https://ai.google.dev/) via OpenAI-compatible endpoint) — for generate & translate
+- 已安装 [yt-dlp](https://github.com/yt-dlp/yt-dlp)（`pip install yt-dlp`）
+- 一个 [Serper API](https://serper.dev/) 密钥（提供免费套餐）— 用于搜索
+- 一个 [Jina AI](https://jina.ai/) API 密钥（可选，但建议配置）— 用于网页提取
+- 一个 LLM API 密钥（例如通过 OpenAI 兼容端点使用 [Gemini](https://ai.google.dev/)）— 用于生成和翻译
 
-### Install
+### 安装
 
 ```bash
 git clone https://github.com/Claire1940/seoscout.git
@@ -40,18 +44,18 @@ cd seoscout
 pip install -e .
 ```
 
-### Configure
+### 配置
 
 ```bash
 cp .env.example .env
-# Edit .env — add your API keys
+# 编辑 .env，填入你的 API 密钥
 ```
 
-### Prepare your keywords file
+### 准备关键词文件
 
-Create a JSON file with your keywords:
+创建包含关键词的 JSON 文件：
 
-**Categorized format** (articles organized into category directories):
+**分类格式**（文章会按分类存放到对应目录）：
 
 ```json
 {
@@ -77,7 +81,7 @@ Create a JSON file with your keywords:
 }
 ```
 
-**Flat format** (all articles in one directory):
+**扁平格式**（所有文章放在同一目录）：
 
 ```json
 {
@@ -90,40 +94,40 @@ Create a JSON file with your keywords:
 }
 ```
 
-> - `topic_name` is optional. When set, search results that don't mention the topic in their title or snippet are automatically filtered out. The categorized format organizes output into subdirectories: `articles/en/guide/`, `articles/en/tier-list/`, etc.
-> - `languages` is optional. When set in the keywords JSON, `seoscout run` will automatically translate articles to the specified languages after generation. If not set, `seoscout translate` requires the `--lang` flag.
+> - `topic_name` 为可选项。设置后，标题或摘要中未提及该主题的搜索结果会被自动过滤。分类格式会将输出放入 `articles/en/guide/`、`articles/en/tier-list/` 等子目录。
+> - `languages` 为可选项。在关键词 JSON 中设置后，`seoscout run` 会在生成文章后自动翻译为指定语言；未设置时，`seoscout translate` 必须传入 `--lang` 参数。
 
-### Run
+### 运行
 
 ```bash
-# Step 1: Search keywords on YouTube + Google
+# 第 1 步：在 YouTube 和 Google 搜索关键词
 seoscout search --keywords keywords.json
 
-# Step 2: Collect transcripts and web content
+# 第 2 步：采集字幕和网页内容
 seoscout collect --keywords keywords.json
 
-# Step 3: Generate articles from collected material
+# 第 3 步：根据采集材料生成文章
 seoscout generate --keywords keywords.json
 
-# Step 4: Translate to other languages
+# 第 4 步：翻译为其他语言
 seoscout translate --keywords keywords.json --lang es,pt,de,fr
 ```
 
-Or do search + collect + generate (and translate if `languages` is set) in one command:
+也可以使用一条命令完成搜索、采集和生成（若设置了 `languages`，还会翻译）：
 
 ```bash
 seoscout run --keywords keywords.json
 ```
 
-The project name is auto-derived from `topic_name` in your keywords file (lowercased, spaces replaced with `_`). If no `topic_name` is set, the filename is used instead.
+项目名会自动从关键词文件的 `topic_name` 推导（转为小写，并将空格替换为 `_`）。未设置 `topic_name` 时会使用文件名。
 
-You can also use it as a Python module:
+也可以作为 Python 模块运行：
 
 ```bash
 python -m seoscout run --keywords keywords.json
 ```
 
-## How It Works
+## **【修改位置 5】** 工作流程
 
 ```
 keywords.json
@@ -179,9 +183,9 @@ keywords.json
 └─────────────────────────────┘
 ```
 
-## Output Format
+## **【修改位置 6】** 输出格式
 
-### search_results.json (Step 1 output)
+### search_results.json（第 1 步输出）
 
 ```json
 {
@@ -222,11 +226,11 @@ keywords.json
 }
 ```
 
-Set `"selected": false` on items you don't want, then run `seoscout collect`.
+对不需要的条目设置 `"selected": false`，然后运行 `seoscout collect`。
 
-### collected/*.json (Step 2 output)
+### collected/*.json（第 2 步输出）
 
-One file per keyword (e.g. `my_game_beginner_guide.json`):
+每个关键词对应一个文件（例如 `my_game_beginner_guide.json`）：
 
 ```json
 {
@@ -260,9 +264,9 @@ One file per keyword (e.g. `my_game_beginner_guide.json`):
 }
 ```
 
-### articles/en/*.mdx (Step 3 output)
+### articles/en/*.mdx（第 3 步输出）
 
-One MDX file per keyword (e.g. `my-game-beginner-guide.mdx`). Uses JavaScript `export const metadata` syntax for compatibility with Next.js MDX wiki projects:
+每个关键词对应一个 MDX 文件（例如 `my-game-beginner-guide.mdx`）。使用 JavaScript 的 `export const metadata` 语法，以兼容 Next.js MDX wiki 项目：
 
 ```mdx
 export const metadata = {
@@ -287,58 +291,58 @@ Your article content here...
 A: Yes, My Game is...
 ```
 
-With categorized keywords, articles are organized into subdirectories: `articles/en/guide/`, `articles/en/bosses/`, `articles/en/tier-list/`, etc.
+使用分类关键词时，文章会整理到 `articles/en/guide/`、`articles/en/bosses/`、`articles/en/tier-list/` 等子目录。
 
-### articles/{lang}/*.mdx (Step 4 output)
+### articles/{lang}/*.mdx（第 4 步输出）
 
-Same structure as English articles, translated to the target language. Any language code works — common ones:
+结构与英文文章相同，只是翻译为目标语言。任意语言代码均可使用，常见代码如下：
 
-| Code | Language | Code | Language |
+| 代码 | 语言 | 代码 | 语言 |
 |------|----------|------|----------|
-| `es` | Spanish | `ko` | Korean |
-| `pt` | Portuguese (Brazil) | `ru` | Russian |
-| `de` | German | `zh` | Chinese |
-| `fr` | French | `vi` | Vietnamese |
-| `ja` | Japanese | `th` | Thai |
-| `ar` | Arabic | `id` | Indonesian |
-| `it` | Italian | `tr` | Turkish |
-| `pl` | Polish | `nl` | Dutch |
-| `hi` | Hindi | `tl` | Tagalog |
+| `es` | 西班牙语 | `ko` | 韩语 |
+| `pt` | 葡萄牙语（巴西） | `ru` | 俄语 |
+| `de` | 德语 | `zh` | 中文 |
+| `fr` | 法语 | `vi` | 越南语 |
+| `ja` | 日语 | `th` | 泰语 |
+| `ar` | 阿拉伯语 | `id` | 印尼语 |
+| `it` | 意大利语 | `tr` | 土耳其语 |
+| `pl` | 波兰语 | `nl` | 荷兰语 |
+| `hi` | 印地语 | `tl` | 他加禄语 |
 
-## Configuration Reference
+## **【修改位置 7】** 配置参考
 
-All settings go in `.env` (copy from `.env.example` and fill in your keys):
+所有设置均写入 `.env`（从 `.env.example` 复制后填入密钥）：
 
 ```bash
 cp .env.example .env
 ```
 
-### 🔑 Required — API Keys
+### 🔑 必需项 — API 密钥
 
-You need at least one API key to use seoscout:
+使用 seoscout 至少需要一个 API 密钥：
 
 ```bash
-# Google search via Serper — REQUIRED
-# Get your free key at https://serper.dev/
+# 通过 Serper 搜索 Google — 必需
+# 在 https://serper.dev/ 获取免费密钥
 SERPER_API_KEY=your_serper_api_key_here
 
-# Web page content extraction via Jina — RECOMMENDED
-# Without this, you get lower rate limits
-# Get your free key at https://jina.ai/
+# 通过 Jina 提取网页内容 — 建议配置
+# 未配置时可用速率限制更低
+# 在 https://jina.ai/ 获取免费密钥
 JINA_API_KEY=your_jina_api_key_here
 ```
 
-| Variable | Required | Where to get |
+| 变量 | 是否必需 | 获取位置 |
 |----------|:--------:|--------------|
-| `SERPER_API_KEY` | ✅ Yes | [serper.dev](https://serper.dev/) (free tier available) |
-| `JINA_API_KEY` | Recommended | [jina.ai](https://jina.ai/) (free tier available) |
-| `LLM_API_KEY` | For generate/translate | Any OpenAI-compatible API (Gemini, OpenAI, etc.) |
+| `SERPER_API_KEY` | ✅ 是 | [serper.dev](https://serper.dev/)（提供免费套餐） |
+| `JINA_API_KEY` | 建议配置 | [jina.ai](https://jina.ai/)（提供免费套餐） |
+| `LLM_API_KEY` | 用于生成/翻译 | 任意 OpenAI 兼容 API（Gemini、OpenAI 等） |
 
-### 🌐 Proxy — For YouTube Transcript Extraction
+### 🌐 代理 — 用于 YouTube 字幕提取
 
-YouTube blocks IPs that request too many transcripts. If you see `RequestBlocked` errors, enable a proxy.
+YouTube 会封锁请求字幕过于频繁的 IP。如出现 `RequestBlocked` 错误，请启用代理。
 
-**With rotating proxy (e.g. 青果网络 / Qingguo):**
+**使用轮换代理（例如青果网络 / Qingguo）：**
 
 ```bash
 USE_PROXY=true
@@ -351,7 +355,7 @@ TUNNEL_CHANNEL_PREFIX=channel
 TUNNEL_TTL=60
 ```
 
-**With standard HTTP proxy:**
+**使用标准 HTTP 代理：**
 
 ```bash
 USE_PROXY=true
@@ -362,46 +366,46 @@ TUNNEL_PASS=your_password
 TUNNEL_PROXY_FORMAT=standard
 ```
 
-**Control proxy per stage** (optional):
+**按阶段控制代理**（可选）：
 
 ```bash
-# Only use proxy for YouTube transcript extraction, not for search
+# 仅在 YouTube 字幕提取时使用代理，搜索阶段不使用
 USE_PROXY=false
 USE_PROXY_FOR_SEARCH=false
 USE_PROXY_FOR_EXTRACT=true
 ```
 
-### 📁 Output
+### 📁 输出
 
-| Variable | Default | Description |
+| 变量 | 默认值 | 说明 |
 |----------|---------|-------------|
-| `OUTPUT_DIR` | `./output` | Root directory for all project data |
+| `OUTPUT_DIR` | `./output` | 全部项目数据的根目录 |
 
-### 🎬 YouTube Tuning
+### 🎬 YouTube 调优
 
-| Variable | Default | Description |
+| 变量 | 默认值 | 说明 |
 |----------|---------|-------------|
-| `YOUTUBE_INITIAL_SEARCH_RESULTS` | `2` | Videos to fetch per keyword |
-| `YOUTUBE_MAX_RESULTS_AFTER_FILTER` | `1` | Max videos to keep after filtering |
-| `YOUTUBE_MAX_DURATION` | `3600` | Skip videos longer than this (seconds) |
-| `YOUTUBE_EXTRACT_TOP_K` | `1` | How many transcripts to extract per keyword |
-| `YOUTUBE_SEARCH_WORKERS` | `10` | Parallel search workers |
-| `YOUTUBE_TRANSCRIPT_WORKERS` | `15` | Parallel transcript workers |
+| `YOUTUBE_INITIAL_SEARCH_RESULTS` | `2` | 每个关键词获取的视频数 |
+| `YOUTUBE_MAX_RESULTS_AFTER_FILTER` | `1` | 过滤后保留的视频上限 |
+| `YOUTUBE_MAX_DURATION` | `3600` | 跳过超过该时长（秒）的视频 |
+| `YOUTUBE_EXTRACT_TOP_K` | `1` | 每个关键词要提取的字幕数 |
+| `YOUTUBE_SEARCH_WORKERS` | `10` | 并行搜索工作线程数 |
+| `YOUTUBE_TRANSCRIPT_WORKERS` | `15` | 并行字幕提取工作线程数 |
 
-### 🌍 Web Tuning
+### 🌍 网页调优
 
-| Variable | Default | Description |
+| 变量 | 默认值 | 说明 |
 |----------|---------|-------------|
-| `WEB_SEARCH_TOP_N` | `10` | Google results per keyword |
-| `WEB_EXTRACT_TOP_K` | `1` | Pages to extract per keyword |
-| `WEB_SEARCH_CONCURRENCY` | `5` | Serper API concurrency |
-| `JINA_RPM` | `200` | Jina rate limit (requests/min) |
-| `JINA_CONCURRENCY` | `20` | Jina parallel requests |
-| `WEB_EXTRACT_RETRIES` | `3` | Retries for web extraction |
+| `WEB_SEARCH_TOP_N` | `10` | 每个关键词的 Google 结果数 |
+| `WEB_EXTRACT_TOP_K` | `1` | 每个关键词要提取的网页数 |
+| `WEB_SEARCH_CONCURRENCY` | `5` | Serper API 并发数 |
+| `JINA_RPM` | `200` | Jina 速率限制（请求/分钟） |
+| `JINA_CONCURRENCY` | `20` | Jina 并行请求数 |
+| `WEB_EXTRACT_RETRIES` | `3` | 网页提取重试次数 |
 
-### 🤖 LLM — For Generate & Translate
+### 🤖 LLM — 用于生成和翻译
 
-Required for `seoscout generate` and `seoscout translate`. Any OpenAI-compatible API endpoint works (Gemini, OpenAI, DeepSeek, etc.).
+`seoscout generate` 和 `seoscout translate` 必需。任意 OpenAI 兼容 API 端点均可使用（Gemini、OpenAI、DeepSeek 等）。
 
 ```bash
 LLM_API_KEY=your_api_key
@@ -410,78 +414,78 @@ LLM_MODEL=gemini-2.5-flash
 LLM_MAX_TOKENS=24576
 ```
 
-| Variable | Default | Description |
+| 变量 | 默认值 | 说明 |
 |----------|---------|-------------|
-| `LLM_API_KEY` | _(empty)_ | API key for the LLM |
-| `LLM_API_BASE_URL` | `https://api.apifast.tech/v1` | OpenAI-compatible endpoint |
-| `LLM_MODEL` | `gemini-2.5-flash` | Model name |
-| `LLM_TEMPERATURE` | `0.7` | Sampling temperature |
-| `LLM_MAX_TOKENS` | `24576` | Max output tokens per request |
-| `LLM_TIMEOUT` | `300` | Request timeout (seconds) |
-| `LLM_RETRY_ATTEMPTS` | `2` | Retries on failure |
-| `LLM_RETRY_DELAY` | `5` | Seconds between retries |
+| `LLM_API_KEY` | _（空）_ | LLM 的 API 密钥 |
+| `LLM_API_BASE_URL` | `https://api.apifast.tech/v1` | OpenAI 兼容端点 |
+| `LLM_MODEL` | `gemini-2.5-flash` | 模型名称 |
+| `LLM_TEMPERATURE` | `0.7` | 采样温度 |
+| `LLM_MAX_TOKENS` | `24576` | 单次请求最大输出 token 数 |
+| `LLM_TIMEOUT` | `300` | 请求超时时间（秒） |
+| `LLM_RETRY_ATTEMPTS` | `2` | 失败时的重试次数 |
+| `LLM_RETRY_DELAY` | `5` | 两次重试间隔（秒） |
 
-### ⚡ Concurrency — Generate & Translate
+### ⚡ 并发 — 生成和翻译
 
-| Variable | Default | Description |
+| 变量 | 默认值 | 说明 |
 |----------|---------|-------------|
-| `GENERATE_BATCH_SIZE` | `100` | Articles per parallel batch |
-| `GENERATE_CONCURRENT_LIMIT` | `10` | Max concurrent generate requests |
-| `TRANSLATE_BATCH_SIZE` | `10` | Translations per parallel batch |
-| `TRANSLATE_BATCH_DELAY` | `1` | Seconds between translation batches |
+| `GENERATE_BATCH_SIZE` | `100` | 每个并行批次的文章数 |
+| `GENERATE_CONCURRENT_LIMIT` | `10` | 生成请求最大并发数 |
+| `TRANSLATE_BATCH_SIZE` | `10` | 每个翻译批次的文章数 |
+| `TRANSLATE_BATCH_DELAY` | `1` | 翻译批次间隔（秒） |
 
-### ⚙️ General
+### ⚙️ 通用设置
 
-| Variable | Default | Description |
+| 变量 | 默认值 | 说明 |
 |----------|---------|-------------|
-| `SEARCH_MAX_RETRIES` | `3` | Search retry attempts |
-| `SEARCH_RETRY_DELAY` | `2` | Seconds between retries |
-| `BLOCKED_DOMAINS` | `youtube.com,youtu.be,...` | Domains excluded from web results |
+| `SEARCH_MAX_RETRIES` | `3` | 搜索重试次数 |
+| `SEARCH_RETRY_DELAY` | `2` | 两次重试间隔（秒） |
+| `BLOCKED_DOMAINS` | `youtube.com,youtu.be,...` | 从网页结果中排除的域名 |
 
-## FAQ
+## **【修改位置 8】** 常见问题
 
-### yt-dlp not found
+### 找不到 yt-dlp
 
-Make sure yt-dlp is installed and on your PATH:
+请确认 yt-dlp 已安装且位于 PATH 中：
 
 ```bash
 pip install yt-dlp
 yt-dlp --version
 ```
 
-### YouTube transcript extraction fails
+### YouTube 字幕提取失败
 
-YouTube sometimes blocks IPs that make too many requests. Solutions:
-1. Wait a few minutes and retry
-2. Enable proxy in `.env` with a rotating proxy service
-3. Reduce `YOUTUBE_TRANSCRIPT_WORKERS` to lower concurrency
+YouTube 有时会封锁请求过多的 IP。可尝试：
+1. 等待几分钟后重试。
+2. 在 `.env` 中启用轮换代理服务。
+3. 降低 `YOUTUBE_TRANSCRIPT_WORKERS` 以减少并发。
 
-### Serper API returns errors
+### Serper API 返回错误
 
-- Check your API key is correct
-- Free tier has rate limits; reduce `WEB_SEARCH_CONCURRENCY`
-- Check your account balance at [serper.dev](https://serper.dev/)
+- 检查 API 密钥是否正确。
+- 免费套餐有速率限制；请降低 `WEB_SEARCH_CONCURRENCY`。
+- 在 [serper.dev](https://serper.dev/) 查看账户余额。
 
-### Web content is too short or empty
+### 网页内容过短或为空
 
-Some pages block automated extraction. Try:
-- Reducing `JINA_CONCURRENCY` to avoid rate limits
-- Adding a `JINA_API_KEY` for higher rate limits
+某些网页会阻止自动提取。可尝试：
+- 降低 `JINA_CONCURRENCY` 以避免触发速率限制。
+- 添加 `JINA_API_KEY` 以提高速率限制。
 
-### LLM generation fails or returns empty
+### LLM 生成失败或返回为空
 
-- Check `LLM_API_KEY` is set and valid
-- Try reducing `GENERATE_BATCH_SIZE` or `GENERATE_CONCURRENT_LIMIT` if rate limited
-- Check `LLM_MAX_TOKENS` — some models have lower limits
-- Check your API provider's status page
+- 检查 `LLM_API_KEY` 是否已设置且有效。
+- 如触发速率限制，尝试降低 `GENERATE_BATCH_SIZE` 或 `GENERATE_CONCURRENT_LIMIT`。
+- 检查 `LLM_MAX_TOKENS`；部分模型的上限较低。
+- 查看 API 服务商的状态页面。
 
-### How to use a custom prompt template?
+### 如何使用自定义提示词模板？
 
-Pass `--prompt /path/to/your/prompt.md` to `generate` or `translate`. The generate template uses `{merged_data}`, `{current_date}`, and `{category}` variables. The translate template uses `$language_name`, `$lang_code`, and `$content` variables.
+向 `generate` 或 `translate` 传入 `--prompt /path/to/your/prompt.md`。生成模板使用 `{merged_data}`、`{current_date}` 和 `{category}` 变量；翻译模板使用 `$language_name`、`$lang_code` 和 `$content` 变量。
 
-### Can I use OpenAI / DeepSeek / other models?
+### 可以使用 OpenAI、DeepSeek 或其他模型吗？
 
-Yes — seoscout uses the OpenAI-compatible chat completions API. Set `LLM_API_BASE_URL` and `LLM_MODEL` to match your provider:
+可以。seoscout 使用 OpenAI 兼容的 Chat Completions API。将 `LLM_API_BASE_URL` 和 `LLM_MODEL` 设置为与你的服务商相匹配的值：
 
 ```bash
 # OpenAI
@@ -493,6 +497,6 @@ LLM_API_BASE_URL=https://api.deepseek.com/v1
 LLM_MODEL=deepseek-chat
 ```
 
-## License
+## **【修改位置 9】** 许可证
 
 [MIT](LICENSE)
