@@ -1,8 +1,8 @@
 <!--
 Variables (auto-injected by generate.py):
-- {merged_data}    : Collected reference material (JSON — YouTube transcripts + web content)
-- {current_date}   : Today's date (YYYY-MM-DD)
-- {category}       : Content category slug (e.g. bosses, races, guide)
+- {{merged_data}}  : Collected reference material (JSON — YouTube transcripts + web content)
+- {{current_date}} : Today's date (YYYY-MM-DD)
+- {{category}}     : Content category slug (e.g. bosses, races, guide)
 -->
 
 You are an experienced SEO content writer. Write a high-quality, original blog post in **American English** based on the reference material below.
@@ -54,12 +54,12 @@ Generate a title based on the keyword field in the reference material:
 Output an MDX file that begins with a JavaScript metadata export:
 
 ```
-export const metadata = {
+export const metadata = {{
   title: "Article Title (60–120 chars, includes keyword)",
   description: "SEO-optimized description (max 155 chars)",
   category: "{category}",
   date: "{current_date}",
-}
+}}
 ```
 
 Then the article body in standard Markdown (no code fences, no H1 heading).
@@ -67,7 +67,7 @@ Then the article body in standard Markdown (no code fences, no H1 heading).
 ## Important
 
 - Do NOT wrap the article in code blocks (```)
-- Start directly with `export const metadata = {`
+- Start directly with `export const metadata = {{`
 - Write in natural, engaging American English
 - Follow Google "Helpful Content" guidelines
 - Focus on user value, avoid keyword stuffing
