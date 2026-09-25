@@ -149,8 +149,8 @@ keywords.json
 ┌─────────────────────────────┐
 │  seoscout collect            │
 │  ┌───────────┐ ┌──────────┐ │
-│  │  YouTube   │ │   Web    │ │
-│  │ transcripts│ │  (Jina)  │ │
+│  │  YouTube   │ │   网页    │ │
+│  │    字幕    │ │  (Jina)  │ │
 │  └─────┬─────┘ └────┬─────┘ │
 │        └──────┬──────┘       │
 │               ▼              │
@@ -179,7 +179,7 @@ keywords.json
 │        └────┬─────┘          │
 │             ▼                │
 │  articles/{lang}/*.mdx       │
-│  (multilingual articles)     │
+│  （多语言文章）               │
 └─────────────────────────────┘
 ```
 
