@@ -157,6 +157,8 @@ async def run_collect(project: str, output_dir: str | None = None):
                     "type": "youtube",
                     "title": item.title,
                     "url": item.url,
+                    "video_id": item.video_id,
+                    "channel": item.channel,
                     "content": content
                 })
 

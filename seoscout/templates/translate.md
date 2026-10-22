@@ -18,7 +18,7 @@
 - title：必须翻译为 $language_name
 - description：必须翻译为 $language_name
 - summary：必须翻译为 $language_name（如存在）
-- 其他所有元数据字段保持不变（category、date、lastModified、image 等）
+- 其他所有元数据字段保持不变（category、date、lastModified、image、videoUrl、videoCreator 等）
 - 元数据块必须保持 JavaScript export 格式，不得使用 YAML frontmatter（---）
 
 目标语言：$language_name ($lang_code)

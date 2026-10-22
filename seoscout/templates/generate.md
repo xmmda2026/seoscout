@@ -59,6 +59,8 @@ export const metadata = {{
   description: "SEO-optimized description (max 155 chars)",
   category: "{category}",
   date: "{current_date}",
+  videoUrl: "sources.youtube.videos[0].url or empty string",
+  videoCreator: "sources.youtube.videos[0].channel or empty string",
 }}
 ```
 
@@ -68,6 +70,8 @@ Then the article body in standard Markdown (no code fences, no H1 heading).
 
 - Do NOT wrap the article in code blocks (```)
 - Start directly with `export const metadata = {{`
+- Set `videoUrl` and `videoCreator` from `sources.youtube.videos[0]`
+- If there is no YouTube video, output `videoUrl: ""` and `videoCreator: ""`
 - Write in natural, engaging American English
 - Follow Google "Helpful Content" guidelines
 - Focus on user value, avoid keyword stuffing
