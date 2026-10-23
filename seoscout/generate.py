@@ -15,6 +15,7 @@ from pathlib import Path
 
 from .core.config import Config
 from .core.llm_client import LLMClient
+from .core.mdx import validate_mdx_article
 from .core.utils import load_json, save_json, ensure_dir
 
 
@@ -57,20 +58,8 @@ def clean_llm_output(content: str) -> str:
 
 
 def validate_markdown(content: str) -> tuple:
-    """Basic Markdown validation. Returns (is_valid, error_msg)."""
-    if not content or not content.strip():
-        return False, "Empty content"
-    # Must have some heading or JS export metadata
-    has_structure = (
-        'export const metadata' in content[:200]
-        or '## ' in content
-        or '# ' in content
-    )
-    if not has_structure:
-        return False, "No heading or metadata export found"
-    if len(content) < 200:
-        return False, f"Content too short ({len(content)} chars)"
-    return True, ""
+    """Validate generated output before it is saved as an MDX article."""
+    return validate_mdx_article(content, minimum_length=200)
 
 
 # ── main logic ──────────────────────────────────────────────────

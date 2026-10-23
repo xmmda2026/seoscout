@@ -15,6 +15,7 @@ from datetime import datetime
 
 from .core.config import Config
 from .core.llm_client import LLMClient
+from .core.mdx import validate_mdx_article
 from .core.utils import ensure_dir
 
 
@@ -69,19 +70,8 @@ def clean_llm_output(content: str) -> str:
 
 
 def validate_markdown(content: str) -> tuple:
-    """Basic check: non-empty, has structure (JS export metadata or headings)."""
-    if not content or not content.strip():
-        return False, "Empty content"
-    has_structure = (
-        'export const metadata' in content[:200]
-        or '## ' in content
-        or '# ' in content
-    )
-    if not has_structure:
-        return False, "No heading or metadata export found"
-    if len(content) < 100:
-        return False, f"Too short ({len(content)} chars)"
-    return True, ""
+    """Validate translated output before it is saved as an MDX article."""
+    return validate_mdx_article(content, minimum_length=100)
 
 
 # ── main logic ──────────────────────────────────────────────────
