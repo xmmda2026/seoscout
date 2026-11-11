@@ -173,7 +173,7 @@ def main():
     elif args.command == "collect":
         asyncio.run(_run_collect(args))
     elif args.command == "generate":
-        asyncio.run(_run_generate(args))
+        exit_code = asyncio.run(_run_generate(args))
     elif args.command == "translate":
         asyncio.run(_run_translate(args))
     elif args.command == "run":
@@ -194,7 +194,7 @@ async def _run_collect(args):
 
 async def _run_generate(args):
     from .generate import run_generate
-    await run_generate(
+    return await run_generate(
         args.project,
         args.keywords,
         prompt_path=args.prompt,

@@ -101,7 +101,7 @@ async def run_generate(
                 kw_data = json.load(f)
         except FileNotFoundError:
             print(f"  ❌ Keywords file not found: {keywords_file}")
-            return
+            return 1
 
         keyword_entries = []
         if 'categories' in kw_data:
@@ -114,7 +114,7 @@ async def run_generate(
 
     if not keyword_entries:
         print("  ❌ No keywords found")
-        return
+        return 1
 
     if test:
         keyword_entries = keyword_entries[:2]
@@ -179,7 +179,7 @@ async def run_generate(
 
     if not prompts:
         print("\n  ℹ️  Nothing to generate")
-        return
+        return 1
 
     print(f"\n  📝 Generating {len(prompts)} articles...")
     print(f"     Batch size: {Config.GENERATE_BATCH_SIZE}")
@@ -248,6 +248,7 @@ async def run_generate(
     print(f"  Output:  {articles_dir}/")
     client.print_stats()
     print("=" * 70)
+    return 1 if failed else 0
 
 
 def _build_repair_prompt(template: str, meta: dict, content: str, error: str) -> str:
