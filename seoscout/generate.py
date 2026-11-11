@@ -261,5 +261,8 @@ def _build_repair_prompt(template: str, meta: dict, content: str, error: str) ->
         f"{content[:2000]}\n\n"
         f"Regenerate a COMPLETE article from scratch. Fix the issues above.\n"
         f"Output ONLY valid MDX starting with `export const metadata = {{`.\n"
+        f"Use exactly one `export const metadata` block.\n"
+        f"The metadata block must end with a line containing only `}};` before the article body.\n"
+        f"Do not repeat the metadata export anywhere else in the document.\n"
         f"Do NOT wrap in code blocks."
     )

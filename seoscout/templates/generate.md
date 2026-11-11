@@ -61,7 +61,7 @@ export const metadata = {{
   date: "{current_date}",
   videoUrl: "sources.youtube.videos[0].url or empty string",
   videoCreator: "sources.youtube.videos[0].channel or empty string",
-}}
+}};
 ```
 
 Then the article body in standard Markdown (no code fences, no H1 heading).

@@ -2,7 +2,7 @@ import sys
 import unittest
 
 from seoscout import cli
-from seoscout.generate import run_generate
+from seoscout.generate import _build_repair_prompt, load_prompt_template, run_generate
 
 
 class InvalidArticleClient:
@@ -39,6 +39,21 @@ class GenerateExitStatusTests(unittest.IsolatedAsyncioTestCase):
                 result = await run_generate("example", str(keywords), output_dir=str(root))
 
         self.assertEqual(result, 1)
+
+    def test_rendered_article_prompt_requires_semicolon_after_metadata_export(self):
+        rendered = load_prompt_template().format(
+            merged_data="{}", current_date="2026-11-11", category="guide"
+        )
+
+        self.assertIn('videoCreator: "sources.youtube.videos[0].channel or empty string",\n};', rendered)
+
+    def test_repair_prompt_requires_one_closed_metadata_export(self):
+        prompt = _build_repair_prompt(
+            "unused", {"keyword": "Example Game guide"}, "broken draft", "missing closing"
+        )
+
+        self.assertIn("exactly one `export const metadata` block", prompt)
+        self.assertIn("a line containing only `};`", prompt)
 
     def test_generate_cli_propagates_failed_generate_exit_code(self):
         async def failed_generate(_args):
