@@ -217,7 +217,7 @@ async def _run_translate(args):
         args.lang = ",".join(langs)
         print(f"🌐 Languages from JSON: {args.lang}\n")
 
-    await run_translate(
+    return await run_translate(
         args.project,
         args.lang,
         prompt_path=args.prompt,

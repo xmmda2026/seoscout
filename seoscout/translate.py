@@ -272,6 +272,7 @@ async def run_translate(
         print(f"  {resolved_names[lang_code]} ({lang_code}): {count} files")
     client.print_stats()
     print("=" * 70)
+    return 1 if failed else 0
 
 
 def _build_repair_prompt(
