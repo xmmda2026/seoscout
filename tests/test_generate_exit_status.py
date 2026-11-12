@@ -147,3 +147,20 @@ class GenerateExitStatusTests(unittest.IsolatedAsyncioTestCase):
             sys.argv = original_argv
 
         self.assertEqual(exc.exception.code, 1)
+
+    def test_translate_cli_propagates_failed_translate_exit_code(self):
+        async def failed_translate(_args):
+            return 1
+
+        original = cli._run_translate
+        original_argv = sys.argv
+        cli._run_translate = failed_translate
+        sys.argv = ["seoscout", "translate", "--keywords", "keywords.json"]
+        try:
+            with self.assertRaises(SystemExit) as exc:
+                cli.main()
+        finally:
+            cli._run_translate = original
+            sys.argv = original_argv
+
+        self.assertEqual(exc.exception.code, 1)

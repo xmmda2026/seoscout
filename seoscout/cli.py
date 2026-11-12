@@ -175,7 +175,7 @@ def main():
     elif args.command == "generate":
         exit_code = asyncio.run(_run_generate(args))
     elif args.command == "translate":
-        asyncio.run(_run_translate(args))
+        exit_code = asyncio.run(_run_translate(args))
     elif args.command == "run":
         exit_code = asyncio.run(_run_all(args))
 
