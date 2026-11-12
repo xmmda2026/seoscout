@@ -99,6 +99,16 @@ class LLMClient:
                         await asyncio.sleep(wait)
                         continue
 
+                    elif resp.status == 503:
+                        err = await resp.text()
+                        wait = self.retry_delay * (2 ** (attempt + 1))
+                        print(f"  ⚠️  Service unavailable for {label}, waiting {wait}s: {err[:300]}")
+                        if attempt < self.retry_attempts - 1:
+                            await asyncio.sleep(wait)
+                            continue
+                        self.stats['failed_requests'] += 1
+                        return None
+
                     else:
                         err = await resp.text()
                         print(f"  ❌ API {resp.status} for {label}: {err[:300]}")
@@ -143,6 +153,7 @@ class LLMClient:
 
         self.stats['start_time'] = time.time()
         results: List[Tuple[Dict, Optional[str]]] = []
+        concurrent_limit = max(1, Config.GENERATE_CONCURRENT_LIMIT)
 
         async with aiohttp.ClientSession() as session:
             for i in range(0, len(prompts), batch_size):
@@ -152,10 +163,13 @@ class LLMClient:
 
                 print(f"\n  📦 Batch {batch_num}/{total_batches} ({len(batch)} items)...")
 
-                tasks = [
-                    self.generate_single(session, prompt, meta)
-                    for prompt, meta in batch
-                ]
+                semaphore = asyncio.Semaphore(concurrent_limit)
+
+                async def generate_limited(prompt: str, meta: Dict) -> Optional[str]:
+                    async with semaphore:
+                        return await self.generate_single(session, prompt, meta)
+
+                tasks = [generate_limited(prompt, meta) for prompt, meta in batch]
                 batch_results = await asyncio.gather(*tasks)
 
                 for (prompt, meta), content in zip(batch, batch_results):

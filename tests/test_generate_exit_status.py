@@ -1,7 +1,10 @@
 import sys
 import unittest
+from unittest.mock import AsyncMock, call, patch
 
 from seoscout import cli
+from seoscout.core.config import Config
+from seoscout.core.llm_client import LLMClient
 from seoscout.generate import _build_repair_prompt, load_prompt_template, run_generate
 
 
@@ -14,6 +17,79 @@ class InvalidArticleClient:
 
 
 class GenerateExitStatusTests(unittest.IsolatedAsyncioTestCase):
+    async def test_generate_batch_respects_configured_concurrency_limit(self):
+        """A burst of article prompts must not exceed the configured API limit."""
+        class TrackingClient(LLMClient):
+            def __init__(self):
+                super().__init__()
+                self.active = 0
+                self.peak_active = 0
+
+            async def generate_single(self, _session, _prompt, _meta):
+                self.active += 1
+                self.peak_active = max(self.peak_active, self.active)
+                try:
+                    await __import__("asyncio").sleep(0.01)
+                    return "ok"
+                finally:
+                    self.active -= 1
+
+        original_limit = Config.GENERATE_CONCURRENT_LIMIT
+        Config.GENERATE_CONCURRENT_LIMIT = 2
+        try:
+            client = TrackingClient()
+            prompts = [(f"prompt-{index}", {"keyword": f"keyword-{index}"}) for index in range(8)]
+            results = await client.generate_batch(prompts, batch_size=8)
+        finally:
+            Config.GENERATE_CONCURRENT_LIMIT = original_limit
+
+        self.assertEqual(8, len(results))
+        self.assertLessEqual(client.peak_active, 2)
+
+    async def test_generate_single_retries_503_with_exponential_backoff(self):
+        """Temporary upstream cooling must not discard an article after two quick retries."""
+        class FakeResponse:
+            def __init__(self, status, payload):
+                self.status = status
+                self.payload = payload
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, _exc_type, _exc, _traceback):
+                return False
+
+            async def json(self):
+                return self.payload
+
+            async def text(self):
+                return str(self.payload)
+
+        class FakeSession:
+            def __init__(self):
+                self.responses = [
+                    FakeResponse(503, {"error": "cooling"}),
+                    FakeResponse(503, {"error": "cooling"}),
+                    FakeResponse(503, {"error": "cooling"}),
+                    FakeResponse(200, {"choices": [{"message": {"content": "article"}}]}),
+                ]
+                self.calls = 0
+
+            def post(self, *_args, **_kwargs):
+                response = self.responses[self.calls]
+                self.calls += 1
+                return response
+
+        client = LLMClient()
+        client.retry_delay = 10
+        session = FakeSession()
+        with patch("seoscout.core.llm_client.asyncio.sleep", new_callable=AsyncMock) as sleep:
+            content = await client.generate_single(session, "prompt", {"keyword": "keyword"})
+
+        self.assertEqual("article", content)
+        self.assertEqual(4, session.calls)
+        self.assertEqual([call(20), call(40), call(80)], sleep.await_args_list)
+
     async def test_generate_returns_nonzero_when_article_is_still_invalid(self):
         from pathlib import Path
         from tempfile import TemporaryDirectory

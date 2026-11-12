@@ -79,14 +79,14 @@ class Config:
     LLM_TEMPERATURE = 0.7
     LLM_MAX_TOKENS = 24576
     LLM_TIMEOUT = 300
-    LLM_RETRY_ATTEMPTS = 2
+    LLM_RETRY_ATTEMPTS = 4
     LLM_RETRY_DELAY = 5
 
     # ============================================================
     # Generate concurrency
     # ============================================================
     GENERATE_BATCH_SIZE = 100
-    GENERATE_CONCURRENT_LIMIT = 10
+    GENERATE_CONCURRENT_LIMIT = 5
 
     # ============================================================
     # Translate concurrency
@@ -188,12 +188,12 @@ class Config:
         cls.LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.7"))
         cls.LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "24576"))
         cls.LLM_TIMEOUT = int(os.getenv("LLM_TIMEOUT", "300"))
-        cls.LLM_RETRY_ATTEMPTS = int(os.getenv("LLM_RETRY_ATTEMPTS", "2"))
+        cls.LLM_RETRY_ATTEMPTS = int(os.getenv("LLM_RETRY_ATTEMPTS", "4"))
         cls.LLM_RETRY_DELAY = int(os.getenv("LLM_RETRY_DELAY", "5"))
 
         # Generate concurrency
         cls.GENERATE_BATCH_SIZE = int(os.getenv("GENERATE_BATCH_SIZE", "100"))
-        cls.GENERATE_CONCURRENT_LIMIT = int(os.getenv("GENERATE_CONCURRENT_LIMIT", "10"))
+        cls.GENERATE_CONCURRENT_LIMIT = int(os.getenv("GENERATE_CONCURRENT_LIMIT", "5"))
 
         # Translate concurrency
         cls.TRANSLATE_BATCH_SIZE = int(os.getenv("TRANSLATE_BATCH_SIZE", "10"))
