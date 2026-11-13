@@ -92,6 +92,7 @@ class Config:
     # Translate concurrency
     # ============================================================
     TRANSLATE_BATCH_SIZE = 10
+    TRANSLATE_CONCURRENT_LIMIT = 2
     TRANSLATE_BATCH_DELAY = 1
 
     # ============================================================
@@ -197,6 +198,7 @@ class Config:
 
         # Translate concurrency
         cls.TRANSLATE_BATCH_SIZE = int(os.getenv("TRANSLATE_BATCH_SIZE", "10"))
+        cls.TRANSLATE_CONCURRENT_LIMIT = int(os.getenv("TRANSLATE_CONCURRENT_LIMIT", "2"))
         cls.TRANSLATE_BATCH_DELAY = int(os.getenv("TRANSLATE_BATCH_DELAY", "1"))
 
         cls.BLOCKED_DOMAINS = set(
@@ -294,4 +296,5 @@ class Config:
         print(f"  - Max tokens:      {cls.LLM_MAX_TOKENS}")
         print(f"  - Gen batch size:  {cls.GENERATE_BATCH_SIZE}")
         print(f"  - Xlate batch:     {cls.TRANSLATE_BATCH_SIZE}")
+        print(f"  - Xlate concurrent:{cls.TRANSLATE_CONCURRENT_LIMIT}")
         print("=" * 70 + "\n")

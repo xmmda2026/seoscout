@@ -1,4 +1,7 @@
+import os
 import sys
+from pathlib import Path
+from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import AsyncMock, call, patch
 
@@ -6,6 +9,7 @@ from seoscout import cli
 from seoscout.core.config import Config
 from seoscout.core.llm_client import LLMClient
 from seoscout.generate import _build_repair_prompt, load_prompt_template, run_generate
+from seoscout.translate import run_translate
 
 
 class InvalidArticleClient:
@@ -17,6 +21,50 @@ class InvalidArticleClient:
 
 
 class GenerateExitStatusTests(unittest.IsolatedAsyncioTestCase):
+    async def test_translate_respects_configured_concurrency_limit(self):
+        """Translations must not start more API calls than their own limit."""
+        class TrackingClient:
+            instance = None
+
+            def __init__(self):
+                self.stats = {}
+                self.active = 0
+                self.peak_active = 0
+                TrackingClient.instance = self
+
+            async def generate_single(self, _session, _prompt, _meta):
+                self.active += 1
+                self.peak_active = max(self.peak_active, self.active)
+                try:
+                    await __import__("asyncio").sleep(0.01)
+                    return "export const metadata = {\n};\n\n" + ("translated content " * 8)
+                finally:
+                    self.active -= 1
+
+            def print_stats(self):
+                pass
+
+        with TemporaryDirectory() as temp_dir:
+            en_dir = Path(temp_dir) / "articles" / "en" / "guide"
+            en_dir.mkdir(parents=True)
+            for index in range(3):
+                (en_dir / f"article-{index}.mdx").write_text(
+                    "export const metadata = {\n};\n\n" + ("English source content " * 8),
+                    encoding="utf-8",
+                )
+
+            with (
+                patch.dict(os.environ, {
+                    "TRANSLATE_BATCH_SIZE": "6",
+                    "TRANSLATE_CONCURRENT_LIMIT": "2",
+                }, clear=False),
+                patch("seoscout.translate.LLMClient", TrackingClient),
+            ):
+                result = await run_translate("example", "ja,es", output_dir=temp_dir)
+
+        self.assertEqual(0, result)
+        self.assertLessEqual(TrackingClient.instance.peak_active, 2)
+
     async def test_generate_batch_respects_configured_concurrency_limit(self):
         """A burst of article prompts must not exceed the configured API limit."""
         class TrackingClient(LLMClient):

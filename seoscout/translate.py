@@ -187,6 +187,7 @@ async def run_translate(
 
     print(f"  📝 {len(all_tasks)} translation tasks\n")
     print(f"     Batch size: {Config.TRANSLATE_BATCH_SIZE}")
+    print(f"     Concurrent requests: {Config.TRANSLATE_CONCURRENT_LIMIT}")
     print(f"     Batch delay: {Config.TRANSLATE_BATCH_DELAY}s")
     print(f"     Model: {Config.LLM_MODEL}\n")
 
@@ -195,9 +196,18 @@ async def run_translate(
     client.stats['start_time'] = asyncio.get_event_loop().time() if hasattr(asyncio, 'get_event_loop') else __import__('time').time()
 
     batch_size = Config.TRANSLATE_BATCH_SIZE
+    concurrent_limit = max(1, Config.TRANSLATE_CONCURRENT_LIMIT)
     batch_delay = Config.TRANSLATE_BATCH_DELAY
+    semaphore = asyncio.Semaphore(concurrent_limit)
     saved = 0
     failed = 0
+
+    async def generate_translation(session, task):
+        async with semaphore:
+            return await client.generate_single(session, task['prompt'], {
+                'keyword': task['article_name'],
+                'language': task['lang'],
+            })
 
     async with __import__('aiohttp').ClientSession() as session:
         for i in range(0, len(all_tasks), batch_size):
@@ -207,13 +217,7 @@ async def run_translate(
 
             print(f"  📦 Batch {batch_num}/{total_batches} ({len(batch)} tasks)...")
 
-            tasks = [
-                client.generate_single(session, t['prompt'], {
-                    'keyword': t['article_name'],
-                    'language': t['lang'],
-                })
-                for t in batch
-            ]
+            tasks = [generate_translation(session, task) for task in batch]
             results = await asyncio.gather(*tasks)
 
             for task_info, content in zip(batch, results):
