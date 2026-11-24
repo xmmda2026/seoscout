@@ -21,6 +21,7 @@ class LLMClient:
         self.api_key = Config.LLM_API_KEY
         self.base_url = Config.LLM_API_BASE_URL.rstrip('/')
         self.api_url = f"{self.base_url}/chat/completions"
+        self.proxy_url = Config.get_proxy_url_for_stage("llm")
         self.model = Config.LLM_MODEL
         self.temperature = Config.LLM_TEMPERATURE
         self.max_tokens = Config.LLM_MAX_TOKENS
@@ -41,6 +42,40 @@ class LLMClient:
             'start_time': None,
             'end_time': None,
         }
+
+    async def preflight_connectivity(self) -> Tuple[bool, str]:
+        """Verify the configured LLM route before sending any model prompts.
+
+        The provider's models endpoint does not generate content or consume
+        completion tokens. Any non-5xx HTTP response proves that the selected
+        direct/proxy route reached the provider; DNS, TLS, proxy and network
+        failures are returned as a concise diagnostic for the caller.
+        """
+        probe_url = f"{self.base_url}/models"
+        route = "configured proxy" if self.proxy_url else "direct connection"
+        try:
+            timeout = aiohttp.ClientTimeout(total=min(self.timeout_seconds, 15))
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    probe_url,
+                    headers=self.headers,
+                    timeout=timeout,
+                    proxy=self.proxy_url,
+                ) as response:
+                    if response.status >= 500:
+                        return False, (
+                            f"LLM connectivity preflight failed for {probe_url} via {route}: "
+                            f"provider returned HTTP {response.status}"
+                        )
+                    return True, (
+                        f"LLM connectivity preflight passed for {probe_url} via {route} "
+                        f"(HTTP {response.status})"
+                    )
+        except Exception as exc:
+            return False, (
+                f"LLM connectivity preflight failed for {probe_url} via {route}: "
+                f"{type(exc).__name__}: {exc}"
+            )
 
     # ── single request ──────────────────────────────────────────
 
@@ -73,6 +108,7 @@ class LLMClient:
                     },
                     headers=self.headers,
                     timeout=aiohttp.ClientTimeout(total=self.timeout_seconds),
+                    proxy=self.proxy_url,
                 ) as resp:
                     if resp.status == 200:
                         data = await resp.json()

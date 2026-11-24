@@ -193,6 +193,10 @@ async def run_translate(
 
     # Execute in batches
     client = LLMClient()
+    preflight_ok, preflight_message = await client.preflight_connectivity()
+    print(f"  {'✅' if preflight_ok else '❌'} {preflight_message}")
+    if not preflight_ok:
+        return 1
     client.stats['start_time'] = asyncio.get_event_loop().time() if hasattr(asyncio, 'get_event_loop') else __import__('time').time()
 
     batch_size = Config.TRANSLATE_BATCH_SIZE

@@ -13,6 +13,9 @@ from seoscout.translate import run_translate
 
 
 class InvalidArticleClient:
+    async def preflight_connectivity(self):
+        return True, "test route available"
+
     async def generate_batch(self, prompts, batch_size=None):
         return [(meta, "not valid MDX") for _, meta in prompts]
 
@@ -21,6 +24,33 @@ class InvalidArticleClient:
 
 
 class GenerateExitStatusTests(unittest.IsolatedAsyncioTestCase):
+    async def test_llm_preflight_stops_before_generation_when_api_is_unreachable(self):
+        """The connectivity probe must fail before a batch can waste model requests."""
+        class FailingSession:
+            seen_proxy = None
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, _exc_type, _exc, _traceback):
+                return False
+
+            def get(self, _url, **kwargs):
+                FailingSession.seen_proxy = kwargs.get("proxy")
+                raise OSError("proxy route refused")
+
+        client = LLMClient()
+        client.base_url = "https://unreachable.example/v1"
+        client.api_url = f"{client.base_url}/chat/completions"
+        client.proxy_url = "http://proxy.invalid:18866"
+        with patch("seoscout.core.llm_client.aiohttp.ClientSession", FailingSession):
+            ok, message = await client.preflight_connectivity()
+
+        self.assertFalse(ok)
+        self.assertIn("unreachable.example", message)
+        self.assertIn("proxy route refused", message)
+        self.assertEqual("http://proxy.invalid:18866", FailingSession.seen_proxy)
+
     async def test_translate_respects_configured_concurrency_limit(self):
         """Translations must not start more API calls than their own limit."""
         class TrackingClient:
@@ -31,6 +61,9 @@ class GenerateExitStatusTests(unittest.IsolatedAsyncioTestCase):
                 self.active = 0
                 self.peak_active = 0
                 TrackingClient.instance = self
+
+            async def preflight_connectivity(self):
+                return True, "test route available"
 
             async def generate_single(self, _session, _prompt, _meta):
                 self.active += 1
@@ -129,10 +162,15 @@ class GenerateExitStatusTests(unittest.IsolatedAsyncioTestCase):
                 return response
 
         client = LLMClient()
+        original_attempts = client.retry_attempts
+        client.retry_attempts = 4
         client.retry_delay = 10
         session = FakeSession()
-        with patch("seoscout.core.llm_client.asyncio.sleep", new_callable=AsyncMock) as sleep:
-            content = await client.generate_single(session, "prompt", {"keyword": "keyword"})
+        try:
+            with patch("seoscout.core.llm_client.asyncio.sleep", new_callable=AsyncMock) as sleep:
+                content = await client.generate_single(session, "prompt", {"keyword": "keyword"})
+        finally:
+            client.retry_attempts = original_attempts
 
         self.assertEqual("article", content)
         self.assertEqual(4, session.calls)
@@ -160,6 +198,36 @@ class GenerateExitStatusTests(unittest.IsolatedAsyncioTestCase):
                 encoding="utf-8",
             )
             with patch("seoscout.generate.LLMClient", InvalidArticleClient):
+                result = await run_generate("example", str(keywords), output_dir=str(root))
+
+        self.assertEqual(result, 1)
+
+    async def test_generate_stops_before_batch_when_preflight_fails(self):
+        """A failed API probe must prevent all article generation requests."""
+        class PreflightFailClient:
+            async def preflight_connectivity(self):
+                return False, "LLM connectivity preflight failed: route refused"
+
+            async def generate_batch(self, *_args, **_kwargs):
+                raise AssertionError("generation must not start after a failed preflight")
+
+        with TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            keywords = root / "keywords.json"
+            keywords.write_text(
+                '{"categories":[{"category":"guide","keywords":["Example Game guide"]}]}',
+                encoding="utf-8",
+            )
+            collected = root / "out" / "collected" / "guide"
+            collected.mkdir(parents=True)
+            (collected / "example_game_guide.json").write_text(
+                '{"total_sources":1,"sources":[]}', encoding="utf-8"
+            )
+            (root / "out" / "search_results.json").write_text(
+                '{"keywords":[{"keyword":"Example Game guide","category":"guide"}]}',
+                encoding="utf-8",
+            )
+            with patch("seoscout.generate.LLMClient", PreflightFailClient):
                 result = await run_generate("example", str(keywords), output_dir=str(root))
 
         self.assertEqual(result, 1)

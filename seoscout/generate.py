@@ -187,6 +187,10 @@ async def run_generate(
 
     # Generate
     client = LLMClient()
+    preflight_ok, preflight_message = await client.preflight_connectivity()
+    print(f"  {'✅' if preflight_ok else '❌'} {preflight_message}")
+    if not preflight_ok:
+        return 1
     results = await client.generate_batch(prompts)
 
     # Save results with repair
