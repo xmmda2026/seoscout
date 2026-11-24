@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 from pathlib import Path
@@ -24,6 +25,55 @@ class InvalidArticleClient:
 
 
 class GenerateExitStatusTests(unittest.IsolatedAsyncioTestCase):
+    async def test_debug_log_records_a_redacted_request_response_and_token_usage(self):
+        """Removing an LLM audit field would leave a failed model call untraceable."""
+        class FakeResponse:
+            status = 200
+            headers = {"x-request-id": "provider-request-123"}
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, _exc_type, _exc, _traceback):
+                return False
+
+            async def json(self):
+                return {
+                    "choices": [{"message": {"content": "article"}}],
+                    "usage": {
+                        "prompt_tokens": 12,
+                        "completion_tokens": 34,
+                        "total_tokens": 46,
+                    },
+                }
+
+        class FakeSession:
+            def post(self, *_args, **_kwargs):
+                return FakeResponse()
+
+        with TemporaryDirectory() as temp_dir:
+            original_log_dir = Config.LOG_DIR
+            original_debug_flag = getattr(Config, "LLM_DEBUG_LOG", False)
+            Config.LOG_DIR = temp_dir
+            Config.LLM_DEBUG_LOG = True
+            try:
+                content = await LLMClient().generate_single(
+                    FakeSession(), "full user prompt", {"keyword": "test keyword", "language": "en"}
+                )
+            finally:
+                Config.LOG_DIR = original_log_dir
+                Config.LLM_DEBUG_LOG = original_debug_flag
+
+            audit_files = list((Path(temp_dir) / "llm").glob("*.json"))
+            self.assertEqual("article", content)
+            self.assertEqual(1, len(audit_files))
+            audit = json.loads(audit_files[0].read_text(encoding="utf-8"))
+            self.assertEqual("full user prompt", audit["request"]["messages"][1]["content"])
+            self.assertNotIn("authorization", audit["request"])
+            self.assertEqual(200, audit["response"]["status"])
+            self.assertEqual("provider-request-123", audit["response"]["provider_request_id"])
+            self.assertEqual(46, audit["usage"]["total_tokens"])
+
     async def test_llm_preflight_stops_before_generation_when_api_is_unreachable(self):
         """The connectivity probe must fail before a batch can waste model requests."""
         class FailingSession:

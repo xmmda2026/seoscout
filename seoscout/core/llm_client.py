@@ -8,6 +8,8 @@ import asyncio
 import aiohttp
 import json
 import time
+import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -88,30 +90,39 @@ class LLMClient:
         """Send a single prompt, return content string or None."""
         self.stats['total_requests'] += 1
         label = (meta or {}).get('keyword', 'unknown')
+        request_id = uuid.uuid4().hex
+        request_body = {
+            "model": self.model,
+            "max_tokens": self.max_tokens,
+            "temperature": self.temperature,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are a professional SEO content writer.",
+                },
+                {"role": "user", "content": prompt},
+            ],
+            "stream": False,
+        }
 
         for attempt in range(self.retry_attempts):
+            started_at = time.monotonic()
             try:
                 async with session.post(
                     self.api_url,
-                    json={
-                        "model": self.model,
-                        "max_tokens": self.max_tokens,
-                        "temperature": self.temperature,
-                        "messages": [
-                            {
-                                "role": "system",
-                                "content": "You are a professional SEO content writer.",
-                            },
-                            {"role": "user", "content": prompt},
-                        ],
-                        "stream": False,
-                    },
+                    json=request_body,
                     headers=self.headers,
                     timeout=aiohttp.ClientTimeout(total=self.timeout_seconds),
                     proxy=self.proxy_url,
                 ) as resp:
                     if resp.status == 200:
                         data = await resp.json()
+                        self._save_audit_log(
+                            request_id, attempt + 1, meta or {}, request_body,
+                            status=resp.status, response_body=data,
+                            response_headers=getattr(resp, "headers", None),
+                            duration_ms=(time.monotonic() - started_at) * 1000,
+                        )
                         self._save_debug(meta or {}, data)
                         content = data['choices'][0]['message']['content']
 
@@ -130,6 +141,13 @@ class LLMClient:
                         return content
 
                     elif resp.status == 429:
+                        err = await resp.text()
+                        self._save_audit_log(
+                            request_id, attempt + 1, meta or {}, request_body,
+                            status=resp.status, response_body=err,
+                            response_headers=getattr(resp, "headers", None),
+                            duration_ms=(time.monotonic() - started_at) * 1000,
+                        )
                         wait = self.retry_delay * (attempt + 1) * 2
                         print(f"  ⚠️  Rate limited for {label}, waiting {wait}s...")
                         await asyncio.sleep(wait)
@@ -137,6 +155,12 @@ class LLMClient:
 
                     elif resp.status == 503:
                         err = await resp.text()
+                        self._save_audit_log(
+                            request_id, attempt + 1, meta or {}, request_body,
+                            status=resp.status, response_body=err,
+                            response_headers=getattr(resp, "headers", None),
+                            duration_ms=(time.monotonic() - started_at) * 1000,
+                        )
                         wait = self.retry_delay * (2 ** (attempt + 1))
                         print(f"  ⚠️  Service unavailable for {label}, waiting {wait}s: {err[:300]}")
                         if attempt < self.retry_attempts - 1:
@@ -147,6 +171,12 @@ class LLMClient:
 
                     else:
                         err = await resp.text()
+                        self._save_audit_log(
+                            request_id, attempt + 1, meta or {}, request_body,
+                            status=resp.status, response_body=err,
+                            response_headers=getattr(resp, "headers", None),
+                            duration_ms=(time.monotonic() - started_at) * 1000,
+                        )
                         print(f"  ❌ API {resp.status} for {label}: {err[:300]}")
                         if attempt < self.retry_attempts - 1:
                             await asyncio.sleep(self.retry_delay * (attempt + 1))
@@ -155,6 +185,11 @@ class LLMClient:
                         return None
 
             except asyncio.TimeoutError:
+                self._save_audit_log(
+                    request_id, attempt + 1, meta or {}, request_body,
+                    error={"type": "TimeoutError", "message": "Request timed out"},
+                    duration_ms=(time.monotonic() - started_at) * 1000,
+                )
                 print(f"  ⏱️  Timeout for {label} (attempt {attempt+1}/{self.retry_attempts})")
                 if attempt < self.retry_attempts - 1:
                     await asyncio.sleep(self.retry_delay * (attempt + 1))
@@ -163,6 +198,11 @@ class LLMClient:
                 return None
 
             except Exception as e:
+                self._save_audit_log(
+                    request_id, attempt + 1, meta or {}, request_body,
+                    error={"type": type(e).__name__, "message": str(e)},
+                    duration_ms=(time.monotonic() - started_at) * 1000,
+                )
                 print(f"  ❌ Exception for {label}: {e}")
                 if attempt < self.retry_attempts - 1:
                     await asyncio.sleep(self.retry_delay * (attempt + 1))
@@ -221,6 +261,52 @@ class LLMClient:
         return results
 
     # ── debug ───────────────────────────────────────────────────
+
+    def _save_audit_log(
+        self,
+        request_id: str,
+        attempt: int,
+        meta: Dict,
+        request_body: Dict,
+        status: Optional[int] = None,
+        response_body=None,
+        response_headers=None,
+        error: Optional[Dict] = None,
+        duration_ms: Optional[float] = None,
+    ):
+        """Persist one optional, API-key-free audit record for an LLM attempt."""
+        if not Config.LLM_DEBUG_LOG:
+            return
+
+        try:
+            headers = response_headers or {}
+            provider_request_id = (
+                headers.get("x-request-id")
+                or headers.get("request-id")
+                or headers.get("openai-request-id")
+            )
+            usage = response_body.get("usage") if isinstance(response_body, dict) else None
+            audit = {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "request_id": request_id,
+                "attempt": attempt,
+                "meta": meta,
+                "request": {"url": self.api_url, **request_body},
+                "response": {
+                    "status": status,
+                    "provider_request_id": provider_request_id,
+                    "body": response_body,
+                },
+                "usage": usage,
+                "error": error,
+                "duration_ms": round(duration_ms, 1) if duration_ms is not None else None,
+            }
+            audit_dir = Path(Config.LOG_DIR) / "llm"
+            audit_dir.mkdir(parents=True, exist_ok=True)
+            fp = audit_dir / f"{request_id}_attempt-{attempt}.json"
+            fp.write_text(json.dumps(audit, indent=2, ensure_ascii=False), encoding="utf-8")
+        except Exception:
+            pass
 
     def _save_debug(self, meta: Dict, data: Dict):
         try:

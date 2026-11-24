@@ -81,6 +81,7 @@ class Config:
     LLM_TIMEOUT = 300
     LLM_RETRY_ATTEMPTS = 4
     LLM_RETRY_DELAY = 5
+    LLM_DEBUG_LOG = False
 
     # ============================================================
     # Generate concurrency
@@ -191,6 +192,7 @@ class Config:
         cls.LLM_TIMEOUT = int(os.getenv("LLM_TIMEOUT", "300"))
         cls.LLM_RETRY_ATTEMPTS = int(os.getenv("LLM_RETRY_ATTEMPTS", "4"))
         cls.LLM_RETRY_DELAY = int(os.getenv("LLM_RETRY_DELAY", "5"))
+        cls.LLM_DEBUG_LOG = os.getenv("LLM_DEBUG_LOG", "false").lower() == "true"
 
         # Generate concurrency
         cls.GENERATE_BATCH_SIZE = int(os.getenv("GENERATE_BATCH_SIZE", "100"))
