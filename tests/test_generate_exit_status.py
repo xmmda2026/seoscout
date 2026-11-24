@@ -25,6 +25,34 @@ class InvalidArticleClient:
 
 
 class GenerateExitStatusTests(unittest.IsolatedAsyncioTestCase):
+    def test_llm_proxy_override_can_force_direct_or_proxy_and_fallback(self):
+        """LLM routing can override the global proxy default without affecting it."""
+        original = {
+            "USE_PROXY": Config.USE_PROXY,
+            "USE_PROXY_FOR_SEARCH": Config.USE_PROXY_FOR_SEARCH,
+            "USE_PROXY_FOR_EXTRACT": Config.USE_PROXY_FOR_EXTRACT,
+            "USE_PROXY_FOR_LLM": Config.USE_PROXY_FOR_LLM,
+        }
+        try:
+            Config.USE_PROXY = True
+            Config.USE_PROXY_FOR_SEARCH = ""
+            Config.USE_PROXY_FOR_EXTRACT = ""
+            Config.USE_PROXY_FOR_LLM = "false"
+            self.assertFalse(Config.use_proxy_for_stage("llm"))
+
+            Config.USE_PROXY = False
+            Config.USE_PROXY_FOR_LLM = "true"
+            self.assertTrue(Config.use_proxy_for_stage("llm"))
+
+            Config.USE_PROXY = True
+            Config.USE_PROXY_FOR_LLM = ""
+            self.assertTrue(Config.use_proxy_for_stage("llm"))
+        finally:
+            Config.USE_PROXY = original["USE_PROXY"]
+            Config.USE_PROXY_FOR_SEARCH = original["USE_PROXY_FOR_SEARCH"]
+            Config.USE_PROXY_FOR_EXTRACT = original["USE_PROXY_FOR_EXTRACT"]
+            Config.USE_PROXY_FOR_LLM = original["USE_PROXY_FOR_LLM"]
+
     async def test_debug_log_records_a_redacted_request_response_and_token_usage(self):
         """Removing an LLM audit field would leave a failed model call untraceable."""
         class FakeResponse:
