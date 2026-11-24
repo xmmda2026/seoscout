@@ -46,15 +46,14 @@ class LLMClient:
         }
 
     async def preflight_connectivity(self) -> Tuple[bool, str]:
-        """Verify the configured LLM route before sending any model prompts.
+        """Verify the LLM API before sending any model prompts.
 
         The provider's models endpoint does not generate content or consume
-        completion tokens. Any non-5xx HTTP response proves that the selected
-        direct/proxy route reached the provider; DNS, TLS, proxy and network
-        failures are returned as a concise diagnostic for the caller.
+        completion tokens. Any non-5xx HTTP response proves that the provider
+        is reachable; DNS, TLS and network failures are returned as a concise
+        diagnostic for the caller.
         """
         probe_url = f"{self.base_url}/models"
-        route = "configured proxy" if self.proxy_url else "direct connection"
         try:
             timeout = aiohttp.ClientTimeout(total=min(self.timeout_seconds, 15))
             async with aiohttp.ClientSession() as session:
@@ -66,17 +65,17 @@ class LLMClient:
                 ) as response:
                     if response.status >= 500:
                         return False, (
-                            f"LLM connectivity preflight failed for {probe_url} via {route}: "
+                            f"LLM API preflight failed for {probe_url}: "
                             f"provider returned HTTP {response.status}"
                         )
                     return True, (
-                        f"LLM connectivity preflight passed for {probe_url} via {route} "
+                        f"LLM API preflight passed for {probe_url} "
                         f"(HTTP {response.status})"
                     )
         except Exception as exc:
             return False, (
-                f"LLM connectivity preflight failed for {probe_url} via {route}: "
-                f"{type(exc).__name__}: {exc}"
+                f"LLM API preflight failed for {probe_url}: "
+                f"{type(exc).__name__}"
             )
 
     # ── single request ──────────────────────────────────────────

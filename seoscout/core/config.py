@@ -46,6 +46,7 @@ class Config:
     USE_PROXY_FOR_SEARCH = ""
     USE_PROXY_FOR_EXTRACT = ""
     USE_PROXY_FOR_LLM = ""
+    PROXY_DEBUG = False
 
     # ============================================================
     # YouTube configuration
@@ -160,6 +161,7 @@ class Config:
         cls.USE_PROXY_FOR_SEARCH = os.getenv("USE_PROXY_FOR_SEARCH", "").lower()
         cls.USE_PROXY_FOR_EXTRACT = os.getenv("USE_PROXY_FOR_EXTRACT", "").lower()
         cls.USE_PROXY_FOR_LLM = os.getenv("USE_PROXY_FOR_LLM", "").lower()
+        cls.PROXY_DEBUG = os.getenv("PROXY_DEBUG", "false").lower() == "true"
 
         # YouTube
         cls.YOUTUBE_INITIAL_RESULTS = int(os.getenv("YOUTUBE_INITIAL_SEARCH_RESULTS", "2"))

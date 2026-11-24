@@ -126,7 +126,10 @@ class GenerateExitStatusTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertFalse(ok)
         self.assertIn("unreachable.example", message)
-        self.assertIn("proxy route refused", message)
+        self.assertIn("OSError", message)
+        self.assertNotIn("proxy route refused", message)
+        self.assertNotIn("configured proxy", message)
+        self.assertNotIn("direct connection", message)
         self.assertEqual("http://proxy.invalid:18866", FailingSession.seen_proxy)
 
     async def test_translate_respects_configured_concurrency_limit(self):

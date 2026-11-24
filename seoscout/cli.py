@@ -18,6 +18,17 @@ import sys
 from pathlib import Path
 
 from . import __version__
+from .core.config import Config
+from .core.proxy import preflight_proxy_for_stages
+
+
+COMMAND_PROXY_STAGES = {
+    "search": ["search"],
+    "collect": ["extract"],
+    "generate": ["llm"],
+    "translate": ["llm"],
+    "run": ["search", "extract", "llm"],
+}
 
 
 def add_output_dir_argument(parser):
@@ -167,19 +178,35 @@ def main():
         args.project = _derive_project(args.keywords)
         print(f"📁 Project: {args.project}\n")
 
-    exit_code = 0
-    if args.command == "search":
-        asyncio.run(_run_search(args))
-    elif args.command == "collect":
-        asyncio.run(_run_collect(args))
-    elif args.command == "generate":
-        exit_code = asyncio.run(_run_generate(args))
-    elif args.command == "translate":
-        exit_code = asyncio.run(_run_translate(args))
-    elif args.command == "run":
-        exit_code = asyncio.run(_run_all(args))
+    sys.exit(asyncio.run(_run_command(args)))
 
-    sys.exit(exit_code)
+
+async def _preflight_proxy(args) -> bool:
+    """Initialize routing and check the proxy once for this command's stages."""
+    Config.init(args.project, output_dir=args.output_dir)
+    stages = COMMAND_PROXY_STAGES[args.command]
+    ok, message = await preflight_proxy_for_stages(stages)
+    if "skipped" not in message.lower() or Config.PROXY_DEBUG:
+        print(f"  {'✅' if ok else '❌'} {message}")
+    return ok
+
+
+async def _run_command(args) -> int:
+    if not await _preflight_proxy(args):
+        return 1
+    if args.command == "search":
+        await _run_search(args)
+        return 0
+    if args.command == "collect":
+        await _run_collect(args)
+        return 0
+    if args.command == "generate":
+        return await _run_generate(args)
+    if args.command == "translate":
+        return await _run_translate(args)
+    if args.command == "run":
+        return await _run_all(args)
+    return 1
 
 
 async def _run_search(args):
