@@ -410,10 +410,13 @@ class YouTube:
                 try:
                     # 在线程池中运行同步代码
                     loop = asyncio.get_event_loop()
-                    content = await loop.run_in_executor(
-                        None,
-                        self._get_transcript,
-                        item.video_id
+                    content = await asyncio.wait_for(
+                        loop.run_in_executor(
+                            None,
+                            self._get_transcript,
+                            item.video_id,
+                        ),
+                        timeout=self.config.YOUTUBE_TIMEOUT,
                     )
 
                     # 3. 保存到缓存
